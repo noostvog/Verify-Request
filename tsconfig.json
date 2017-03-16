@@ -1,0 +1,14 @@
+{ "files": [
+        "src/spec2json.ts",
+        "src/pegparser.js",
+        "src/predicates.ts",
+        "verify-and-request.ts",
+        "src/api_verification.ts",
+        "src/spec2json.ts"
+    ],
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "classic"
+  }
+}

@@ -1,0 +1,128 @@
+/*
+ * Parser for requirements
+ */
+
+//Initializer
+{
+  function createReplaceMap(def, real){
+    var result = {};
+    for(var i = 0; i < def.length; i++){
+      result[def[i]] = real[i];
+    }
+    return result;
+  }
+  function replaceArgNameByValue(defbody, replaceMap){
+    console.log("replaceArgNameByValue", defbody, replaceMap);
+
+    var predops = [">", ">=", "<", "<=", "==", "OR", "AND", "->", "NOT"];
+    var predprops = ["value", "string-length", "array-length", "type", "present", "NOT"];
+    var defaults = ["string", "number", "integer", "boolean", "object", "true", "false"];
+
+    var operation = defbody.expression;
+    if(predops.indexOf(operation) != -1){
+      //it's an operation
+      return {expression: operation, arguments: defbody.arguments.map(x => replaceArgNameByValue(x, replaceMap))};
+    }else if(predprops.indexOf(operation) != -1){
+      //it's a property
+      return {expression: operation, arguments: defbody.arguments.map(x => replaceArgNameByValue(x, replaceMap))};
+    }else if(defaults.indexOf(defbody) != -1){
+      //deze moeten niet vervangen worden, zijn speciale waardes, geen veldnamen
+      return defbody;
+    }else{
+      //it's a field
+      return replaceMap[defbody];
+    }
+    return defbody;
+  }
+  function translateCustomExprToPredicates(name, realargs){
+    var defs = options.customDefs;
+    for (var i = 0; i < defs.length; i++) {
+      var def = defs[i];
+      var defname = def[0];
+      if(defname == name){
+        var defargs = def[1];
+        var defbody = def[2];
+        if(defargs.length != realargs.length){
+          error("There are not enough or too many arguments for ".concat(defname));
+        }
+        var replaceMap = createReplaceMap(defargs, realargs);
+        return replaceArgNameByValue(defbody, replaceMap);
+      }
+    }
+    error("Unknown custom definition.");
+  }
+}
+Expression = term:Term tail:Tail?
+ { if(tail==null){ return term; }
+   else { return {expression: tail[0], arguments: [term, tail[1]] } } }
+
+Term = NormalTerm / SmallTerm
+
+NormalTerm
+ = head:Factor tail:Tail
+ { return {expression: tail[0], arguments: [head, tail[1]]} }
+
+SmallTerm
+ = head:Factor
+ { return head }
+
+Tail
+  =  _ op:Operator _ fac:Term
+  { return [op, fac] }
+
+Factor
+ = ("(" e:Expression ")" { return e;}) / TypeExpression / CompareExpression / PresentExpression / NotExpression / CustomExpression
+
+TypeExpression
+  = "type" "(" ident:Identifier ")" _ "==" _ type:TypeStr
+   {  return {left_get: "type", left_var: ident, operator: "==", right: type} }
+
+CompareExpression
+//int moet eigenlijk integer zijn, maar om ook definities te kunnen parsen, is het hier een string geworden
+  = c:CompareStr "(" ident:Identifier ")" _ op:NumberOperator _ int:VariableName
+   { return {left_get: c, left_var: ident, operator: op, right: int } }
+
+PresentExpression
+  = "present" "(" ident:Identifier ")"
+   { return {expression: "present", arguments: [ident]} }
+
+NotExpression
+  = "NOT" "(" args: Term ")"
+  { return {expression: "NOT", arguments: [args]}}
+
+CustomExpression
+//TODO misschien is factor te liberaal, maar weet niet hoe dat programmeurs dit gaan gebruiken
+  = name:String "(" params:(param:(Term / VariableName)
+    rest:( _ "," _
+      restparams:(Term / VariableName) {return restparams})*
+      { return [param].concat(rest);})*")"
+  {  return translateCustomExprToPredicates(name, params[0])}
+
+CompareStr
+  = "value" / "string-length" / "array-length"
+
+TypeStr
+  = "String" / "Boolean" / "Number" / "Object"
+
+Identifier
+  = ObjectField / VariableName
+
+ObjectField = a:VariableName "." b:VariableName { return ["objectfield", a, b] }
+
+Operator
+  = "AND" / "OR" / "->"
+
+NumberOperator
+  = "<=" /"<" / ">=" / ">" / "=="
+
+Integer "integer"
+  = [0-9]+ { return parseInt(text(), 10); }
+
+String "string"
+  = [a-z]+ { return text() }
+
+VariableName "VariableName"
+  = [a-z_0-9]+ { return text() }
+
+_ "whitespace"
+  = [ \t\n\r]*

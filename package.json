@@ -1,0 +1,10 @@
+{
+  "name": "verify-and-request",
+  "version": "0.0.1",
+  "description": "verifies requests with swagger file before sending the request",
+  "dependencies": {
+    "express": "^4.10.2",
+    "socket.io": "^1.2.0",
+    "swagger.d.ts": "0.1.0"
+  }
+}
