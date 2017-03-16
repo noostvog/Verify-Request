@@ -53,31 +53,6 @@
         "and(f1, f2)            := present(f1) AND present(f2)"
     ],
     "paths": {
-      "/test": {
-        "post":{
-          "parameters" : [
-            { "name":"a",
-              "required:": true,
-              "type":"number",
-              "enum": [1, 3, 5, 7],
-              "maximum" : 5,
-              "exclusiveMaximum":false,
-              "minimum" : 2
-            },
-              { "name":"b",
-                "type":"string",
-                "minLength": 5,
-                "maxLength": 10
-               },
-            { "name":"c",
-              "type":"object",
-              "minItems":3,
-              "maxItems":5
-            }
-          ],
-          "x-constraints" : ["xor(a,d)"]
-        }
-      },
       "/trends/place": {
           "get": {
               "description": "Returns the top 10 trending topics for a specific WOEID",
